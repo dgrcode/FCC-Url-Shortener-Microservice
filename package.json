@@ -1,0 +1,39 @@
+{
+  "name": "fcc-timestamp-microservice",
+  "version": "0.0.1",
+  "description": "My project Url Shortener Microservice for the FCC Backend Certificate",
+  "main": "server.js",
+  "scripts": {
+    "test": "mocha",
+    "dev": "node server.js",
+    "start": "PORT=3000 node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dgrcode/FCC-Url-Shortener-Microservice.git"
+  },
+  "keywords": [
+    "FCC",
+    "FreeCodeCamp",
+    "Backend"
+  ],
+  "author": "Daniel González Reina",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dgrcode/FCC-Url-Shortener-Microservice/issues"
+  },
+  "homepage": "https://github.com/dgrcode/FCC-Url-Shortener-Microservice#readme",
+  "dependencies": {
+    "custom-encoder": "0.0.1",
+    "express": "^4.14.0",
+    "mongodb": "^2.2.22"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-http": "^3.0.0",
+    "jquery": "^3.1.1",
+    "jsdom": "^9.9.1",
+    "mocha": "^3.2.0",
+    "morgan": "^1.7.0"
+  }
+}
