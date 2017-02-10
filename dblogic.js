@@ -1,9 +1,11 @@
 //"use strict";
 const mongodb = require("mongodb");
+const encoder = require("custom-encoder")();
+encoder.setBase('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
 
 const MongoClient = mongodb.MongoClient;
 const url = process.env.MONGOLAB_URI;
-console.log('url mongo: ' + url);
+//console.log('url mongo: ' + url);
 
 let collection;
 
@@ -22,27 +24,8 @@ function connectAndDo(callback) {
 
 const api = {};
 
-api.initDb = () => {
-	connectAndDo((collection, done) => {
-
-		collection.insert({
-			'_id': 'urlToPos',
-			value: {}
-		});
-
-		collection.insert({
-			'_id': 'posToUrl',
-			value: []
-		});
-
-		console.log('ADDED OK');
-
-		done();
-	});
-};
-
 api.addPair = (url, position) => {
-	connectAndDo((collection, done) => {
+	connectAndDo((collection, closeDbConnection) => {
 		console.log('-> addPair');
 
 		let content = collection.find({});
@@ -50,91 +33,101 @@ api.addPair = (url, position) => {
 			console.log(docs);
 		});
 
-		done();
+		closeDbConnection();
 	});
 };
 
-/*
+/**
+ * This function updates the current key, and return a promise
+ * with the updated value.
+ */
+const getNewKey = () => new Promise((resolve, reject) => {
+	connectAndDo((collection, closeDbConnection) => {
+		let newKey;
+		collection.find({_id: 'currentKey'}).toArray()
+		.then(docs => {
+			console.log('currentKey.toArray(): ');
+			console.log(docs);
+			newKey = docs[0].value;
+			newKey++;
+
+			console.log('va a actualizar el currentKey');
+			collection.updateOne({_id: 'currentKey'}, {$set: {value: newKey}})
+			.then(() => {
+				console.log('currentKey gets updated: ' + newKey);
+				resolve(newKey);
+			}
+			,reason => {
+				console.log('There was an error updating currentKey: ');
+				console.log(reason);
+				reject(reason);
+			});
+			
+		},
+		err => {
+			console.log('There was an error trying to read the current key: ');
+			console.log(err);
+			reject(err);
+		});
+	});
+});
+
 api.addUrl = (url, callback) => {
-	console.log('adding url: ' + url);
-	connectAndDo((collection, done) => {
-		// first checks if the url already exists
-		let isStored = false;
-		collection
-				.find({_id: 'posToUrl'})
-				.toArray((err, docs) => {
-					let urlObj = docs[0].value;
-					if (urlObj.hasOwnProperty(url)) {
-						console.log('Url was alreday stored at position ' + pos);
-						isStored = true;
-						callback(pos);
-					} else {
-						console.log('It was not stored');
+	connectAndDo((collection, closeDbConnection) => {
+		let urlCursor = collection.find({url: url});
+		console.log('urlCursor: ' + urlCursor);
+		console.log('url: ' + url);
 
-						let pos;
-						let promises = [];
-						collection.find({_id: 'posToUrl'})
-								.toArray((err, docs) => {
-									let posArr = docs[0].value;
-									pos = posArr.length;
-
-									collection.update({_id: 'posToUrl'},{
-										$push: {value: url}
-									});
-
-
-									let setModifier = {$set: {}};
-									setModifier.$set['value.' + url] = pos;
-									console.log('Este es el set modifier');
-									console.log(setModifier);
-
-									// TODO el update no está funcionando
-									collection.update({_id: 'urlToPos'}, 
-									{
-										setModifier
-									},
-									{
-										upsert: true
-									}, done);
-
-									callback(pos);
-
-								});
-								}
-
-
+		urlCursor.count()
+		.then(count => {
+			console.log('cursor.count = ' + count);
+			if (count !== 0) {
+				// The url was already stored
+				console.log('the url was already stored');
+				urlCursor.toArray()
+				.then((err, docs) => {
+					closeDbConnection(); // close the database connection
+					callback(docs[0].key);
+				})
+				.catch(reason => {
+					console.log('cursor.toArray was rejected. Reason: ' + reason);
 				});
-		
-	});
-};
-*/
-api.addUrl = (url, callback) => {
-	connectAndDo((collection, done) => {
-		let pos = 1;
 
-		let setModifier = {$set: {}};
-		setModifier.$set['value.' + url] = pos;
+			} else {
+				// The url must be stored
+				getNewKey()
+				.then(newKey => {
+					console.log('gets the new key: ' + newKey);
 
-		collection.update({_id: 'urlToPos'}, setModifier, {upsert: true}, () => {
-			callback(pos);
-			done();
+					// TODO tiene que archivarla para poder recuperarla.
+					// El encoder no ha funcionado.
+					console.log('codificada: ' + encoder.encode(newKey));
+					callback(newKey);
+				})
+				.catch(reason => {
+					console.log('getNewKey was rejected. Reason: ' + reason);
+				});
+			}
+		})
+		.catch(reason => {
+			console.log('Cursor.count() was rejected. Reason: ' + reason);
 		});
 	});
 }
 
 api.getUrl = (position) => {
-	connectAndDo((collection, done) => {
+	connectAndDo((collection, closeDbConnection) => {
 		console.log('getUrl');
 
 		let content = collection.find();
 		console.log(content);
 
-		done();
+		closeDbConnection();
 	});
 };
 
 api.getNextPosition = (callback) => {
-	connectAndDo((collection, done) => {
+	connectAndDo((collection, closeDbConnection) => {
 		collection.find({_id: 'posToUrl'}).
 				toArray((err, docs) => {
 					console.log('llama desde getNextPosition');
@@ -143,7 +136,7 @@ api.getNextPosition = (callback) => {
 
 					callback(data.length);
 
-					done();
+					closeDbConnection();
 				})
 	});
 };
