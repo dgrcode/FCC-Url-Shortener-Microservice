@@ -1,14 +1,21 @@
 //"use strict";
 const mongodb = require("mongodb");
 const encoder = require("custom-encoder")();
-encoder.setBase('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+encoder.setBase('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._~:/?#[]@!$&\'()*+,;=%');
 
 const MongoClient = mongodb.MongoClient;
 const url = process.env.MONGOLAB_URI;
-//console.log('url mongo: ' + url);
 
 let collection;
 
+/**
+ * This function connects to the database and run the callback
+ *
+ * @param {function} callback. Is the callback passed to the function to be
+ *   executed after the connection to the database has been established. The
+ *   callback function is send two params:
+ *     (database collection, database closing function)
+ */
 function connectAndDo(callback) {
 	MongoClient.connect(url, function (err, db) {
 	  if (err) {
@@ -24,22 +31,13 @@ function connectAndDo(callback) {
 
 const api = {};
 
-api.addPair = (url, position) => {
-	connectAndDo((collection, closeDbConnection) => {
-		console.log('-> addPair');
-
-		let content = collection.find({});
-		content = content.toArray((err, docs) => {
-			console.log(docs);
-		});
-
-		closeDbConnection();
-	});
-};
-
 /**
- * This function updates the current key, and return a promise
- * with the updated value.
+ * This function updates the current key, and return a promise with the updated
+ * value, so it can be used to store a new url.
+ *
+ * @returns {Promise}. This promise is resolved with the value of the updated
+ *   numeric key, or rejected if there was an error during the read/update
+ *   process.
  */
 const getNewKey = () => new Promise((resolve, reject) => {
 	connectAndDo((collection, closeDbConnection) => {
@@ -72,6 +70,14 @@ const getNewKey = () => new Promise((resolve, reject) => {
 	});
 });
 
+/**
+ * This function stores the url given as param in the database and call the
+ * callback giving it the alphanumeric key used to store it.
+ *
+ * @param {string} url. The url to be stored in the database.
+ * @param {function} callback. The function to be called passing the
+ *   alphanumeric key used to store the url.
+ */
 api.addUrl = (url, callback) => {
 	connectAndDo((collection, closeDbConnection) => {
 		let urlCursor = collection.find({url: url});
@@ -115,29 +121,26 @@ api.addUrl = (url, callback) => {
 	});
 }
 
-api.getUrl = (position) => {
+/**
+ * This function receives the alphanumeric key used to store the url and decode
+ * it with custom-decoder to get the numeric key. Then uses that key to
+ * retrieve the url from the database and call the callback passing the url as
+ * parameter
+ *
+ * @param {string} key. Is the alphanumeric key given to the user when the url
+ *   was stored.
+ * @param {function} callback. The function to be called passing the url.
+ */
+api.getUrl = (key, callback) => {
 	connectAndDo((collection, closeDbConnection) => {
 		console.log('getUrl');
+
+		// TODO pending to write the function
 
 		let content = collection.find();
 		console.log(content);
 
 		closeDbConnection();
-	});
-};
-
-api.getNextPosition = (callback) => {
-	connectAndDo((collection, closeDbConnection) => {
-		collection.find({_id: 'posToUrl'}).
-				toArray((err, docs) => {
-					console.log('llama desde getNextPosition');
-					let data = docs[0].value;
-					console.log(data);
-
-					callback(data.length);
-
-					closeDbConnection();
-				})
 	});
 };
 
