@@ -90,8 +90,10 @@ api.addUrl = (url, callback) => {
 			if (count !== 0) {
 				// The url was already stored
 				console.log('the url was already stored');
+				
 				urlCursor.toArray()
-				.then((err, docs) => {
+				.then(docs => {
+					console.log('cursor.toArray parsed ok');
 					closeDbConnection(); // close the database connection
 					callback(docs[0].key);
 				})
@@ -105,10 +107,15 @@ api.addUrl = (url, callback) => {
 				.then(newKey => {
 					console.log('gets the new key: ' + newKey);
 
-					// TODO tiene que archivarla para poder recuperarla.
-					// El encoder no ha funcionado.
-					console.log('codificada: ' + encoder.encode(newKey));
-					callback(newKey);
+					// Store the url linked with the right numeric key
+					connectAndDo((collection, dbClose) => {
+						collection.insertOne({url: url, key: newKey})
+						.then(dbClose);
+					});
+
+					let encodedKey = encoder.encode(newKey)
+					console.log('codificada: ' + encodedKey);
+					callback(encodedKey);
 				})
 				.catch(reason => {
 					console.log('getNewKey was rejected. Reason: ' + reason);
