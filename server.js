@@ -10,15 +10,16 @@ app.get('/', (req, res) => {
 
 app.get('/new/:url', (req, res) => {
     //add url
-    dblogic.addUrl(req.params.url, (pos) => {
-        // it will call it with the final position
-        console.log('Se añade la url en la pos: ' + pos);
-        res.end('short url: ' + pos);
+    dblogic.addUrl(req.params.url, (key) => {
+        // it will call it with the final keyition
+        console.log('Se añade la url en la key: ' + key);
+        res.end('short url: ' + key);
     });
 });
 
-app.get('/:pos', (req, res) => {
+app.get('/:pos', (req, res, next) => {
     //go to pos
+    next();
 });
 
 app.use( (req,res) => {
