@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/dgrcode/FCC-Url-Shortener-Microservice#readme",
   "dependencies": {
-    "custom-encoder": "0.0.1",
+    "custom-encoder": "0.0.2",
     "express": "^4.14.0",
     "mongodb": "^2.2.22"
   },
