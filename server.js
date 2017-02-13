@@ -10,11 +10,19 @@ app.get('/', (req, res) => {
 
 app.get('/new/:url', (req, res) => {
   //add url
-  dblogic.addUrl(req.params.url, (key) => {
+  dblogic.addUrl(req.params.url)
+  .then(key => {
     // it will call it with the final keyition
-    console.log('Se añade la url en la key: ' + key);
-    res.end('short url: ' + key);
-  });
+    console.log('url key: ' + key);
+    let obj = {original_url: req.params.url, short_url: "https://dgr-url-shortener.herokuapp.com/" + key}
+    res.json(obj);
+    res.end();
+  })
+  .catch(err => {
+    console.log("there was an error adding the url:");
+    console.log(err);
+    res.end("There was an error. Please try again");
+  })
 });
 
 /**
@@ -28,10 +36,16 @@ app.get('/favicon.ico', (req, res) => {
 
 app.get('/:key', (req, res, next) => {
   console.log('Se llama a get /:key con key: ' + req.params.key);
-  dblogic.getUrl(req.params.key, (url) => {
+  dblogic.getUrl(req.params.key).
+  then(url => {
     // it should redirect to the url
     //res.end('url stored: ' + url);
     res.redirect("http://" +url);
+  })
+  .catch(err => {
+    console.log("there was an error retrieving the url:");
+    console.log(err);
+    res.end("There was an error. Please, check that the key is correct");
   });
 });
 

@@ -76,10 +76,12 @@ const getNewKey = () => new Promise((resolve, reject) => {
  * and the `url` being the url.
  *
  * @param {string} url. The url to be stored in the database.
- * @param {function} callback. The function to be called passing the
- *   alphanumeric key used to store the url.
+ *
+ * @returns {Promise}. This promise is resolved with the value of the 
+ *   alphanumeric key used to store the url, or rejected if there was an error
+ *   during the process.
  */
-api.addUrl = (url, callback) => {
+api.addUrl = url => new Promise((resolve, reject) => {
   console.log('addUrl');
   connectAndDo((collection, closeDbConnection) => {
     let urlCursor = collection.find({url: url});
@@ -93,10 +95,10 @@ api.addUrl = (url, callback) => {
         urlCursor.toArray()
         .then(docs => {
           closeDbConnection(); // close the database connection
-          callback(docs[0].key);
+          resolve(docs[0].key);
         })
         .catch(reason => {
-          console.log('cursor.toArray was rejected. Reason: ' + reason);
+          reject(reason);
         });
 
       } else {
@@ -110,19 +112,20 @@ api.addUrl = (url, callback) => {
             .then(dbClose);
           });
 
+          // resolve the promise
           let encodedKey = encoder.encode(newKey)
-          callback(encodedKey);
+          resolve(encodedKey);
         })
         .catch(reason => {
-          console.log('getNewKey was rejected. Reason: ' + reason);
+          reject(reason);
         });
       }
     })
     .catch(reason => {
-      console.log('Cursor.count() was rejected. Reason: ' + reason);
+      reject(reason);
     });
   });
-}
+});
 
 /**
  * This function receives the alphanumeric key used to store the url and decode
@@ -134,24 +137,30 @@ api.addUrl = (url, callback) => {
  *   was stored.
  * @param {function} callback. The function to be called passing the url.
  */
-api.getUrl = (key, callback) => {
+api.getUrl = key => new Promise((resolve, reject) => {
   console.log('getUrl');
   connectAndDo((collection, closeDbConnection) => {
 
+    let decodedKey;
+    try {
+      decodedKey = encoder.decode(key);
+    } catch (err) {
+      console.log('va a petardear');
+      reject(err);
+    }
+
     collection.find({key: decodedKey}).toArray()
     .then(docs => {
-      callback(docs[0].url);
+      resolve(docs[0].url);
     })
     .catch(reason => {
-      console.log('There was an error parsing cursor to array. Reason:');
-      console.log(reason);
-      callback(reason);
+      reject(reason);
     })
     .then(() => {
       console.log('cierra la base de datos');
       closeDbConnection();
-    })
+    });
   });
-};
+});
 
 module.exports = api;
