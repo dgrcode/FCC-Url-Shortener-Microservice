@@ -8,21 +8,26 @@ app.get('/', (req, res) => {
   res.end('Goto /new/:url to insert a new url, or go to /$shortUrl$ to be redirected to the corresponding page');
 });
 
-app.get('/new/:url', (req, res) => {
-  //add url
-  dblogic.addUrl(req.params.url)
-  .then(key => {
-    // it will call it with the final keyition
-    console.log('url key: ' + key);
-    let obj = {original_url: req.params.url, short_url: "https://dgr-url-shortener.herokuapp.com/" + key}
-    res.json(obj);
+const urlRegExp = new RegExp("^https?:\/\/(?:www\.)?[0-9a-z]+\.[0-9a-z]{2,4}\/?(?:\/.*)*$", "i");
+app.get('/new/:url(*)', (req, res) => {
+  if (!urlRegExp.test(req.params.url)) {
+    res.json({error: "Wrong url format, make sure you have a valid protocol and real site"});
     res.end();
-  })
-  .catch(err => {
-    console.log("there was an error adding the url:");
-    console.log(err);
-    res.end("There was an error. Please try again");
-  })
+  } else {
+    dblogic.addUrl(req.params.url)
+    .then(key => {
+      // it will call it with the final keyition
+      console.log('url key: ' + key);
+      let obj = {original_url: req.params.url, short_url: "https://dgr-url-shortener.herokuapp.com/" + key}
+      res.json(obj);
+      res.end();
+    })
+    .catch(err => {
+      console.log("there was an error adding the url:");
+      console.log(err);
+      res.end("There was an error. Please try again");
+    });
+  }
 });
 
 /**
@@ -48,11 +53,6 @@ app.get('/:key', (req, res, next) => {
     res.end("There was an error. Please, check that the key is correct");
   });
 });
-
-app.use( (req,res) => {
-  console.log('Entra en el middleware');
-  res.end('Nada por aquí');
-} );
 
 app.listen(process.env.PORT);
 console.log('App listening on port ' + process.env.PORT);
